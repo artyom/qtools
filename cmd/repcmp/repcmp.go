@@ -12,6 +12,7 @@ import (
 	"text/tabwriter"
 
 	"github.com/artyom/autoflags"
+	"github.com/golang/snappy"
 )
 
 func main() {
@@ -78,7 +79,7 @@ func readReport(name string) ([]*queryInfo, error) {
 	}
 	defer f.Close()
 	var out []*queryInfo
-	if err := gob.NewDecoder(f).Decode(&out); err != nil {
+	if err := gob.NewDecoder(snappy.NewReader(f)).Decode(&out); err != nil {
 		return nil, err
 	}
 	return out, nil

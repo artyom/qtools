@@ -15,6 +15,7 @@ import (
 
 	"github.com/artyom/autoflags"
 	_ "github.com/go-sql-driver/mysql"
+	"github.com/golang/snappy"
 )
 
 func main() {
@@ -99,8 +100,13 @@ func dumpToFile(name string, q []*queryInfo) error {
 		return err
 	}
 	defer f.Close()
-	if err := gob.NewEncoder(f).Encode(q); err != nil {
+	sw := snappy.NewBufferedWriter(f)
+	defer sw.Close()
+	if err := gob.NewEncoder(sw).Encode(q); err != nil {
 		_ = os.Remove(f.Name())
+		return err
+	}
+	if err := sw.Close(); err != nil {
 		return err
 	}
 	return f.Close()
