@@ -4,7 +4,7 @@
 package main
 
 import (
-	"encoding/json"
+	"encoding/gob"
 	"fmt"
 	"math"
 	"os"
@@ -78,7 +78,7 @@ func readReport(name string) ([]*queryInfo, error) {
 	}
 	defer f.Close()
 	var out []*queryInfo
-	if err := json.NewDecoder(f).Decode(&out); err != nil {
+	if err := gob.NewDecoder(f).Decode(&out); err != nil {
 		return nil, err
 	}
 	return out, nil

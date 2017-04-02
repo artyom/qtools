@@ -7,7 +7,7 @@ package main
 
 import (
 	"database/sql"
-	"encoding/json"
+	"encoding/gob"
 	"fmt"
 	"os"
 	"sync"
@@ -99,7 +99,7 @@ func dumpToFile(name string, q []*queryInfo) error {
 		return err
 	}
 	defer f.Close()
-	if err := json.NewEncoder(f).Encode(q); err != nil {
+	if err := gob.NewEncoder(f).Encode(q); err != nil {
 		_ = os.Remove(f.Name())
 		return err
 	}
