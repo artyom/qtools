@@ -1,3 +1,5 @@
+// Command dbrep is a wrapper to run qrep + repcmp commands against a set of
+// database servers
 package main
 
 import (
