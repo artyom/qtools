@@ -68,14 +68,14 @@ func processHost(name, host string, args *mainArgs) error {
 		}
 		out, err := cmd.CombinedOutput()
 		if err != nil {
-			printHostOnce.Do(func() { fmt.Fprintln(os.Stderr, "Host:", host) })
+			printHostOnce.Do(func() { fmt.Fprintln(os.Stderr, "\nHost:", host) })
 			if len(out) > 0 {
 				os.Stderr.Write(out)
 			}
 			return err
 		}
 		if len(out) > 0 {
-			printHostOnce.Do(func() { fmt.Println("Host:", host) })
+			printHostOnce.Do(func() { fmt.Println("\nHost:", host) })
 			os.Stdout.Write(out)
 		}
 	}
