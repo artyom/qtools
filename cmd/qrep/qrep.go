@@ -6,10 +6,13 @@
 package main
 
 import (
+	"bufio"
 	"database/sql"
 	"encoding/gob"
 	"fmt"
 	"os"
+	"path/filepath"
+	"strings"
 	"sync"
 	"text/tabwriter"
 
@@ -48,15 +51,14 @@ func do(a *args) error {
 	}
 	defer rows.Close()
 	var total int
-nextRow:
 	for rows.Next() {
 		var cnt int
 		var schema, digest, text string
 		if err := rows.Scan(&schema, &cnt, &digest, &text); err != nil {
 			return err
 		}
-		if _, ok := skipDigests[digest]; ok {
-			continue nextRow
+		if skipQuery(strings.TrimSpace(text)) {
+			continue
 		}
 		total += cnt
 		queries = append(queries, &queryInfo{Count: cnt, Schema: schema, Text: text, Digest: digest})
@@ -133,18 +135,32 @@ from performance_schema.events_statements_summary_by_digest
 where schema_name is not NULL and schema_name not in ("mysql", "sys", "tmp") order by count_star desc
 `
 
-var skipDigests map[string]struct{}
+func skipQuery(s string) bool {
+	if strings.HasPrefix(s, "SET ") || strings.HasPrefix(s, "SHOW ") {
+		return true
+	}
+	_, ok := queryBlacklist[s]
+	return ok
+}
+
+var queryBlacklist map[string]struct{}
 
 func init() {
-	skipDigests = make(map[string]struct{})
-	for _, d := range []string{
-		"dca5a150c149dd587e268540040aba81", // SET `autocommit` = ?
-		"60a57648fa41632a7fb34c6826d54350", // SET NAMES `utf8mb4`
-		"3e44d3b6dd839ce18f1b298bac5ce63f", // COMMIT
-		"715f192be9389b835d0c9fb65a12ecd8", // START TRANSACTION
-		"d1fa70a5be5d4df14dd4d3c9f1797ef3", // ROLLBACK
-		"a8e9da105c1b067941decbba48c66bf4", // SHOW WARNINGS
+	queryBlacklist = make(map[string]struct{})
+	for _, s := range []string{
+		"COMMIT",
+		"START TRANSACTION",
+		"ROLLBACK",
 	} {
-		skipDigests[d] = struct{}{}
+		queryBlacklist[s] = struct{}{}
+	}
+	if f, err := os.Open(filepath.Join(os.Getenv("HOME"), ".qrep-query-blacklist")); err == nil {
+		defer f.Close()
+		for scanner := bufio.NewScanner(f); scanner.Scan(); {
+			s := strings.TrimSpace(scanner.Text())
+			if s != "" && !strings.HasPrefix(s, "#") {
+				queryBlacklist[s] = struct{}{}
+			}
+		}
 	}
 }
