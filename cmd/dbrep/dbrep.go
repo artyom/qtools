@@ -11,6 +11,7 @@ import (
 	"sync"
 	"time"
 
+	"golang.org/x/sync/errgroup"
 	yaml "gopkg.in/yaml.v2"
 
 	"github.com/artyom/autoflags"
@@ -41,12 +42,12 @@ func do(args *mainArgs) error {
 	if err != nil {
 		return err
 	}
+	var g errgroup.Group
 	for name, host := range hosts {
-		if err := processHost(name, host, args); err != nil {
-			return err
-		}
+		name, host := name, host // explicit shadow for in-loop capture
+		g.Go(func() error { return processHost(name, host, args) })
 	}
-	return nil
+	return g.Wait()
 }
 
 func processHost(name, host string, args *mainArgs) error {
