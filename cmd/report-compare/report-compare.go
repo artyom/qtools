@@ -17,15 +17,16 @@ import (
 func main() {
 	args := struct {
 		Top bool `flag:"top,report only top shard for each query"`
-	}{}
+		Min int  `flag:"min,minimal counter value to consider query"`
+	}{Min: 1000}
 	autoflags.Parse(&args)
-	if err := run(args.Top, flag.Args()); err != nil {
+	if err := run(args.Top, args.Min, flag.Args()); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 }
 
-func run(top bool, files []string) error {
+func run(top bool, cutoff int, files []string) error {
 	if len(files) == 0 {
 		return fmt.Errorf("no files to process")
 	}
@@ -64,7 +65,7 @@ loop1:
 	var report []reportElement
 	for k, vv := range commonQueries {
 		sort.Slice(vv, func(i, j int) bool { return vv[i].count > vv[j].count })
-		if vv[0].count < 1000 {
+		if vv[0].count < cutoff {
 			continue
 		}
 		report = append(report, reportElement{header: k, values: vv})
